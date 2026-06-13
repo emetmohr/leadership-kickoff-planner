@@ -30,17 +30,16 @@
   .wrap{max-width:1180px;margin:0 auto;padding:0 18px}
 
   /* Header */
-  header.masthead{background:var(--primary);color:#fff;border-bottom:4px solid var(--gold)}
-  .masthead-in{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding:18px 0 16px}
-  .brandrow{width:100%;display:flex;align-items:center;gap:11px;margin-bottom:9px}
-  .brandmark{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 11px;border-radius:8px;background:#fff;color:var(--primary);font-family:var(--serif);font-weight:700;font-size:15px;letter-spacing:.03em;box-shadow:0 1px 3px rgba(0,0,0,.18)}
-  .brandtext{display:flex;flex-direction:column;line-height:1.18}
-  .brandtext .org{font-size:13.5px;font-weight:700;letter-spacing:.01em;color:#fff}
-  .brandtext .dept{font-size:11.5px;font-weight:600;color:var(--gold)}
-  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.82);font-weight:700}
-  .title{font-family:var(--serif);font-weight:700;font-size:27px;letter-spacing:-.01em;line-height:1.05;margin:2px 0 0;width:100%;color:#fff}
-  .dateline{font-size:14px;color:rgba(255,255,255,.92);font-weight:600}
-  .lead{font-size:13.5px;color:rgba(255,255,255,.9);max-width:60ch;margin:6px 0 0;width:100%}
+  header.masthead{background:var(--card);color:var(--ink);border-bottom:4px solid var(--gold);box-shadow:0 1px 0 var(--line)}
+  .masthead-in{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding:16px 0}
+  .brandrow{width:100%;display:flex;align-items:center;flex-wrap:wrap;gap:11px 14px;margin-bottom:11px}
+  .brandrow .fcpslogo{height:46px;width:auto;flex:0 0 auto}
+  .brandrow .brandfallback{display:none;font-family:var(--serif);font-weight:700;font-size:18px;color:var(--primary)}
+  .brandrow .dept{display:inline-flex;align-items:center;font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--primary);padding-left:14px;border-left:2px solid var(--gold)}
+  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .title{font-family:var(--serif);font-weight:700;font-size:27px;letter-spacing:-.01em;line-height:1.05;margin:2px 0 0;width:100%;color:var(--ink)}
+  .dateline{font-size:14px;color:var(--ink-soft);font-weight:600}
+  .lead{font-size:13.5px;color:var(--ink-soft);max-width:60ch;margin:6px 0 0;width:100%}
   .src-note{width:100%;margin-top:10px;font-size:12.5px;display:none;align-items:center;gap:8px;
     background:#fffaf0;border:1px solid var(--required-line);color:var(--required);padding:7px 11px;border-radius:9px}
   .src-note.show{display:flex}
@@ -208,11 +207,10 @@
 <header class="masthead">
   <div class="wrap masthead-in">
     <div class="brandrow">
-      <span class="brandmark" aria-hidden="true">FCPS</span>
-      <span class="brandtext">
-        <span class="org" id="confEyebrow">Fairfax County Public Schools</span>
-        <span class="dept" id="confDept">Office of Professional Learning</span>
-      </span>
+      <img class="fcpslogo" src="fcps-logo.png" alt="Fairfax County Public Schools"
+           onerror="this.style.display='none';var f=document.getElementById('confEyebrow');if(f)f.style.display='inline';">
+      <span class="brandfallback" id="confEyebrow">Fairfax County Public Schools</span>
+      <span class="dept" id="confDept">Office of Professional Learning</span>
     </div>
     <h1 class="title" id="confTitle">Leadership Kickoff</h1>
     <div class="dateline" id="confDates">July 21 to 24, 2026</div>

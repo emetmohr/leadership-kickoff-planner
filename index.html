@@ -3,19 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FCPS Principal Conference Planner</title>
+<title>Leadership Kickoff Planner</title>
 <style>
   :root{
-    --ink:#16233b; --ink-soft:#46546c; --muted:#7a879c;
-    --bg:#f4f6f9; --card:#ffffff; --line:#e3e8ef; --line-soft:#eef1f6;
-    --primary:#2d52c8; --primary-ink:#1c3a99;
-    --required:#a85a0a; --required-bg:#fdf2e3; --required-line:#f0d9b5;
+    /* FCPS official palette: Dark Teal #00677F, Teal #00A2BC, Gold #FFB500, Navy #001A70, Gray #747679 */
+    --ink:#062a33; --ink-soft:#3c5560; --muted:#6b7d83;
+    --bg:#f3f7f8; --card:#ffffff; --line:#dde7ea; --line-soft:#eef3f5;
+    --primary:#00677F; --primary-ink:#004b5c;
+    --navy:#001A70; --teal:#00A2BC; --gold:#FFB500;
+    --required:#8a5a00; --required-bg:#fff6e0; --required-line:#ffe1a3;
     --conflict:#b42318; --conflict-bg:#fdeceb;
-    --shadow:0 1px 2px rgba(16,30,54,.06), 0 6px 20px rgba(16,30,54,.05);
+    --shadow:0 1px 2px rgba(0,40,50,.06), 0 6px 20px rgba(0,40,50,.05);
     --radius:12px;
     --serif:Georgia,'Times New Roman',serif;
     --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-    --track:#2d52c8;
+    --track:#00677F;
   }
   *{box-sizing:border-box}
   [hidden]{display:none!important}
@@ -28,12 +30,17 @@
   .wrap{max-width:1180px;margin:0 auto;padding:0 18px}
 
   /* Header */
-  header.masthead{background:var(--card);border-bottom:1px solid var(--line)}
-  .masthead-in{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding:18px 0 14px}
-  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
-  .title{font-family:var(--serif);font-weight:700;font-size:27px;letter-spacing:-.01em;line-height:1.05;margin:2px 0 0;width:100%}
-  .dateline{font-size:14px;color:var(--ink-soft);font-weight:600}
-  .lead{font-size:13.5px;color:var(--ink-soft);max-width:60ch;margin:6px 0 0;width:100%}
+  header.masthead{background:var(--primary);color:#fff;border-bottom:4px solid var(--gold)}
+  .masthead-in{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding:18px 0 16px}
+  .brandrow{width:100%;display:flex;align-items:center;gap:11px;margin-bottom:9px}
+  .brandmark{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 11px;border-radius:8px;background:#fff;color:var(--primary);font-family:var(--serif);font-weight:700;font-size:15px;letter-spacing:.03em;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+  .brandtext{display:flex;flex-direction:column;line-height:1.18}
+  .brandtext .org{font-size:13.5px;font-weight:700;letter-spacing:.01em;color:#fff}
+  .brandtext .dept{font-size:11.5px;font-weight:600;color:var(--gold)}
+  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.82);font-weight:700}
+  .title{font-family:var(--serif);font-weight:700;font-size:27px;letter-spacing:-.01em;line-height:1.05;margin:2px 0 0;width:100%;color:#fff}
+  .dateline{font-size:14px;color:rgba(255,255,255,.92);font-weight:600}
+  .lead{font-size:13.5px;color:rgba(255,255,255,.9);max-width:60ch;margin:6px 0 0;width:100%}
   .src-note{width:100%;margin-top:10px;font-size:12.5px;display:none;align-items:center;gap:8px;
     background:#fffaf0;border:1px solid var(--required-line);color:var(--required);padding:7px 11px;border-radius:9px}
   .src-note.show{display:flex}
@@ -88,6 +95,7 @@
   .tag.aud{color:var(--ink-soft);background:var(--line-soft);border:1px solid var(--line)}
   .meta{font-size:12.5px;color:var(--ink-soft);margin:3px 0 0;display:flex;flex-wrap:wrap;gap:3px 12px}
   .meta b{font-weight:700;color:var(--ink)}
+  .meta .repeat{color:var(--primary-ink);font-weight:600}
   .desc{font-size:13px;color:var(--ink-soft);margin:7px 0 0;display:none}
   .desc.open{display:block}
   .more{font:inherit;font-size:12px;font-weight:600;color:var(--primary-ink);background:none;border:0;cursor:pointer;padding:4px 0 0}
@@ -160,6 +168,18 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
+  /* TheFist splash (brief, dismissable) */
+  .splash{position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:var(--primary);color:#fff;cursor:pointer;transition:opacity .5s ease}
+  .splash.hide{opacity:0;pointer-events:none}
+  .splash .bao{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700}
+  .splash .fistlogo{height:96px;width:auto;max-width:62vw;object-fit:contain;filter:drop-shadow(0 6px 16px rgba(0,0,0,.28))}
+  .splash .fisttext{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:.01em}
+  .splash .tap{font-size:11.5px;color:rgba(255,255,255,.7)}
+  .fist-credit{margin:10px 0 0;color:var(--muted);font-size:12px;display:flex;align-items:center;gap:7px}
+  .fist-credit img{height:18px;width:auto}
+  .fist-credit b{color:var(--ink)}
+
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
   /* Print: only My Schedule */
@@ -177,13 +197,25 @@
 </head>
 <body>
 
+<div class="splash" id="splash" role="status" aria-label="Brought to you by TheFist">
+  <span class="bao">Brought to you by</span>
+  <img class="fistlogo" id="fistLogoSplash" src="thefist-logo.png" alt="TheFist"
+       onerror="this.style.display='none';var t=document.getElementById('fistTextSplash');if(t)t.style.display='block';">
+  <span class="fisttext" id="fistTextSplash" style="display:none">TheFist</span>
+  <span class="tap">tap to continue</span>
+</div>
+
 <header class="masthead">
   <div class="wrap masthead-in">
-    <div style="width:100%">
-      <span class="eyebrow" id="confEyebrow">Fairfax County Public Schools</span>
-      <h1 class="title" id="confTitle">Principal Professional Learning Conference</h1>
+    <div class="brandrow">
+      <span class="brandmark" aria-hidden="true">FCPS</span>
+      <span class="brandtext">
+        <span class="org" id="confEyebrow">Fairfax County Public Schools</span>
+        <span class="dept" id="confDept">Office of Professional Learning</span>
+      </span>
     </div>
-    <div class="dateline" id="confDates">July 20–24, 2026</div>
+    <h1 class="title" id="confTitle">Leadership Kickoff</h1>
+    <div class="dateline" id="confDates">July 21 to 24, 2026</div>
     <p class="lead">Browse sessions, filter to what is required for your role, build your schedule, and send it to yourself.</p>
     <div class="src-note" id="srcNote" role="status">
       <span id="srcMsg"></span>
@@ -279,6 +311,10 @@
       </div>
     </details>
     <p style="margin:14px 0 0;color:var(--muted);font-size:12px">Schedule planner for the conference team. Built to be embedded in Atlas or a Google Site.</p>
+    <p class="fist-credit">
+      <img src="thefist-logo.png" alt="" onerror="this.style.display='none'">
+      <span>Brought to you by <b>TheFist</b></span>
+    </p>
   </div>
 </footer>
 
@@ -299,6 +335,7 @@
 const CONFIG = {
   title:    "Leadership Kickoff",
   eyebrow:  "Fairfax County Public Schools",
+  dept:     "Office of Professional Learning",
   dates:    "July 21 to 24, 2026",
   year:     2026,
   tabs: [
@@ -357,7 +394,7 @@ function slug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').repl
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 /* ---------- track colors ---------- */
-const TRACK_COLORS=['#2d52c8','#0f766e','#b4267a','#15803d','#c2410c','#6d4bd1','#0e7490','#9a5b00','#b91c4d','#3f6212'];
+const TRACK_COLORS=['#00677F','#001A70','#00A2BC','#319B42','#D3451E','#8a5a00','#6d4bd1','#b4267a','#0e7490','#3f6212'];
 const trackColorMap={};
 function colorFor(track){ if(!track) return '#64748b';
   if(trackColorMap[track]) return trackColorMap[track];
@@ -403,6 +440,34 @@ function norm(o,i){
     presenter, description, alsoOfferedAt, notes,
     startMin, endMin
   };
+}
+
+/* ---------- expand repeated sessions ----------
+   A session with entries in "Also Offered At" is shown as one card per time
+   slot, each individually selectable, so conflict detection stays honest.
+   Slot strings look like "11:15 AM-12:15 PM; 1:15 PM-2:15 PM" (or newlines).
+   The base time stays as the first occurrence; each extra slot becomes another. */
+function expandOccurrences(list){
+  const out=[];
+  list.forEach(s=>{
+    const slots = String(s.alsoOfferedAt||'').split(/[;\n]+/).map(x=>x.trim()).filter(Boolean);
+    const repeats = slots.length>0;
+    out.push(Object.assign({}, s, { isRepeating: repeats }));
+    slots.forEach((slot,idx)=>{
+      const parts = slot.split(/\s*[-–—]\s*/);
+      const startMin = timeToMin(parts[0]);
+      const endMin = parts[1] ? timeToMin(parts[1]) : null;
+      if(startMin==null) return;
+      if(startMin===s.startMin && endMin===s.endMin) return; // skip a duplicate of the base time
+      out.push(Object.assign({}, s, {
+        id: s.id + '-alt' + (idx+1),
+        startMin, endMin,
+        isRepeating: true,
+        isOccurrence: true
+      }));
+    });
+  });
+  return out;
 }
 
 /* ---------- sample schedule (used when no Sheet is connected) ----------
@@ -469,7 +534,7 @@ async function loadData(){
 async function load(){
  try{
   const { objs, source } = await loadData();
-  SESSIONS=objs.map(norm).filter(s=>s.title);
+  SESSIONS=expandOccurrences(objs.map(norm).filter(s=>s.title));
 
   // day order = first appearance
   DAYS=[]; SESSIONS.forEach(s=>{ if(s.day && !DAYS.includes(s.day)) DAYS.push(s.day); });
@@ -493,6 +558,7 @@ async function load(){
 function setupHeader(source){
   document.getElementById('confTitle').textContent=CONFIG.title;
   document.getElementById('confEyebrow').textContent=CONFIG.eyebrow;
+  const deptEl=document.getElementById('confDept'); if(deptEl && CONFIG.dept) deptEl.textContent=CONFIG.dept;
   document.getElementById('confDates').textContent=CONFIG.dates;
   document.title=CONFIG.title+' Planner';
   document.getElementById('printTitle').textContent='My '+CONFIG.title+' schedule';
@@ -595,7 +661,8 @@ function cardFor(s){
           : `<span><b>Virtual</b></span>`)
       : (s.room?`<span><b>${esc(s.room)}</b></span>`:'');
   const meta=[ locMeta,
-               s.presenter?`<span>${esc(s.presenter)}</span>`:'' ].filter(Boolean).join('');
+               s.presenter?`<span>${esc(s.presenter)}</span>`:'',
+               s.isRepeating?`<span class="repeat">↻ Offered at more than one time</span>`:'' ].filter(Boolean).join('');
   card.innerHTML=`
     <div class="card-top">
       ${time}
@@ -731,6 +798,17 @@ let toastT;
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1700); }
 document.getElementById('srcGuide').onclick=()=>{ const g=document.getElementById('guideBox'); g.open=true; g.scrollIntoView({behavior:'smooth'}); };
+
+/* ---------- TheFist splash: auto-dismiss, or tap to skip ---------- */
+(function(){
+  const sp=document.getElementById('splash'); if(!sp) return;
+  let done=false;
+  const hide=()=>{ if(done) return; done=true; sp.classList.add('hide');
+    setTimeout(()=>{ sp.style.display='none'; }, 600); };
+  sp.addEventListener('click', hide);
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setTimeout(hide, reduce ? 700 : 1600);
+})();
 
 load();
 /* end of app */

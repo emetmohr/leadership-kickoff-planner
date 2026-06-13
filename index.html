@@ -172,11 +172,11 @@
     background:var(--primary);color:#fff;cursor:pointer;transition:opacity .5s ease}
   .splash.hide{opacity:0;pointer-events:none}
   .splash .bao{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700}
-  .splash .fistlogo{height:96px;width:auto;max-width:62vw;object-fit:contain;filter:drop-shadow(0 6px 16px rgba(0,0,0,.28))}
+  .splash .fistlogo{height:96px;width:auto;max-width:62vw;object-fit:contain;filter:drop-shadow(0 6px 16px rgba(0,0,0,.28));border-radius:14px}
   .splash .fisttext{font-family:var(--serif);font-size:38px;font-weight:700;letter-spacing:.01em}
   .splash .tap{font-size:11.5px;color:rgba(255,255,255,.7)}
   .fist-credit{margin:10px 0 0;color:var(--muted);font-size:12px;display:flex;align-items:center;gap:7px}
-  .fist-credit img{height:18px;width:auto}
+  .fist-credit img{height:18px;width:auto;border-radius:4px}
   .fist-credit b{color:var(--ink)}
 
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -347,7 +347,7 @@ const CONFIG = {
 
 /* ---------- pure helpers (validated separately) ---------- */
 function parseCSV(text){
-  text = text.replace(/^\uFEFF/, '');
+  text = text.replace(/^﻿/, '');
   const rows=[]; let row=[]; let field=''; let i=0; let inQ=false; const n=text.length;
   while(i<n){ const c=text[i];
     if(inQ){ if(c==='"'){ if(text[i+1]==='"'){field+='"';i+=2;continue;} inQ=false;i++;continue;} field+=c;i++;continue; }
@@ -473,24 +473,24 @@ function expandOccurrences(list){
    maps each row to a tab; the date is filled in from CONFIG.tabs at build time. */
 const SAMPLE=[
 // day, start, end, title, requirement, requirement detail, audience group (lane), target audience (as written), theme/track, format, room/location, virtual link, presenter, description, also offered at, notes
-['Tue Jul 21','8:30 AM','9:45 AM','Opening Session and Welcome','Required','All attendees','All Administrators','All school and central office leaders','','In-person','Main Auditorium','','Superintendent\u2019s Office','Priorities for the year ahead and what to expect across the four days. Includes live Q and A.','',''],
+['Tue Jul 21','8:30 AM','9:45 AM','Opening Session and Welcome','Required','All attendees','All Administrators','All school and central office leaders','','In-person','Main Auditorium','','Superintendent’s Office','Priorities for the year ahead and what to expect across the four days. Includes live Q and A.','',''],
 ['Tue Jul 21','10:00 AM','11:15 AM','Leading Through Change','Choice','','School-Based Administrators','Principals and assistant principals','','In-person','Room 142','','J. Okafor','Practical routines for guiding a building through a year of change without losing the team.','',''],
 ['Tue Jul 21','10:00 AM','11:15 AM','Central Office Partnership Lab','Choice','','Central Office','Department and program leaders','','In-person','Room 118','','Cabinet Leadership','How central office teams can better support schools this year.','',''],
 ['Tue Jul 21','1:00 PM','2:15 PM','Coaching for Instructional Growth','Choice','','School-Based Administrators','Principals and assistant principals','','In-person','Room 150','','M. Levin','Moving staff from compliance to growth through trust-based feedback cycles.','2:30 PM-3:45 PM',''],
 
 ['Wed Jul 22','8:30 AM','9:45 AM','Keynote: The Year Ahead','Required','One per building','All Administrators','All school and central office leaders','','In-person','Main Auditorium','','Guest Keynote','Morning keynote to open the second day.','',''],
 ['Wed Jul 22','10:00 AM','11:15 AM','Legal Updates for Administrators','Required','One admin per building','School-Based Administrators','Building administrators','','In-person','Room 142','','Office of Legal Services','Annual legal update covering the changes that most affect building leaders.','',''],
-['Wed Jul 22','11:30 AM','12:30 PM','Special Education Compliance Essentials','Required','','All Administrators','All administrators','','In-person','Room 118','','Office of Special Services','IEP timelines, legal obligations, and the leader\u2019s role in service delivery.','',''],
+['Wed Jul 22','11:30 AM','12:30 PM','Special Education Compliance Essentials','Required','','All Administrators','All administrators','','In-person','Room 118','','Office of Special Services','IEP timelines, legal obligations, and the leader’s role in service delivery.','',''],
 ['Wed Jul 22','1:30 PM','2:45 PM','Supporting Multilingual Learners','Choice','','Elementary','Elementary leaders','','In-person','Room 144','','ML Programs Office','Identification, services, and family communication for multilingual learners.','',''],
 
-['Thu Jul 23','8:30 AM','9:45 AM','Integrated Discipline Practices','Required','All attendees','All Administrators','All administrators','','In-person','Main Auditorium','','Office of Equity','District approach to discipline and the leader\u2019s role in consistent practice.','',''],
+['Thu Jul 23','8:30 AM','9:45 AM','Integrated Discipline Practices','Required','All attendees','All Administrators','All administrators','','In-person','Main Auditorium','','Office of Equity','District approach to discipline and the leader’s role in consistent practice.','',''],
 ['Thu Jul 23','10:00 AM','11:15 AM','Master Scheduling Clinic','Choice','','Assistant Principals','Assistant principals','','In-person','Room 118','','R. Kettler','Bring your draft. Work through staffing constraints and student-need tradeoffs.','',''],
 ['Thu Jul 23','10:00 AM','11:15 AM','Data to Decisions for Secondary Leaders','Choice','','Secondary','Secondary leaders','','In-person','Room 150','','Office of Research','Reading your school data story and choosing the moves that matter most.','',''],
 ['Thu Jul 23','1:30 PM','2:45 PM','Title I Program Updates','Choice','','Title I','Title I school leaders','','In-person','Room 144','','Federal Programs Office','Compliance reminders and program updates for Title I schools.','',''],
 
 ['Fri Jul 24','9:00 AM','10:00 AM','Virtual: Wellbeing and Sustainable Leadership','Choice','','All Administrators','All administrators','','Virtual','','https://example.org/kickoff-wellbeing','Leadership Coaching Team','Calendar audits, delegation, and sustainable routines for the year.','',''],
 ['Fri Jul 24','10:15 AM','11:15 AM','Virtual: First 90 Days Planning','Choice','','Principals','New and returning principals','','Virtual','','https://example.org/kickoff-first90','Mentor Principal Team','Turning four days of learning into a concrete entry plan for the school year.','',''],
-['Fri Jul 24','11:30 AM','12:15 PM','Closing Session and Commitments','Required','All attendees','All Administrators','All school and central office leaders','','In-person','Main Auditorium','','Superintendent\u2019s Office','Shared commitments for the year and a send-off from district leadership.','','']
+['Fri Jul 24','11:30 AM','12:15 PM','Closing Session and Commitments','Required','All attendees','All Administrators','All school and central office leaders','','In-person','Main Auditorium','','Superintendent’s Office','Shared commitments for the year and a send-off from district leadership.','','']
 ];
 const SAMPLE_HEADERS=['day','start time','end time','session title','requirement','requirement detail','audience group (lane)','target audience (as written)','theme / track','format','room / location','virtual link','presenter','description','also offered at','notes'];
 function sampleObjects(){
@@ -748,7 +748,7 @@ document.getElementById('expIcs').onclick=()=>{
 document.getElementById('expEmail').onclick=()=>{
   const c=chosenSorted(); let body=CONFIG.title+'\n'+CONFIG.dates+'\n\n'; let curDay=null;
   c.forEach(s=>{ if(s.day!==curDay){ curDay=s.day; body+='\n'+s.day+'\n'; }
-    body+='  '+fmtTime(s.startMin)+(s.endMin!=null?'\u2013'+fmtTime(s.endMin):'')+'  '+s.title+(s.room?'  ('+s.room+')':'')+'\n'; });
+    body+='  '+fmtTime(s.startMin)+(s.endMin!=null?'–'+fmtTime(s.endMin):'')+'  '+s.title+(s.room?'  ('+s.room+')':'')+'\n'; });
   body+='\n\nReopen this plan: '+planUrl();
   try{ location.href='mailto:?subject='+encodeURIComponent('My '+CONFIG.title+' schedule')+'&body='+encodeURIComponent(body); }
   catch(e){ prompt('Copy your schedule:',body); }

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FCPS Principal Conference Planner</title>
+<style>
+  :root{
+    --ink:#16233b; --ink-soft:#46546c; --muted:#7a879c;
+    --bg:#f4f6f9; --card:#ffffff; --line:#e3e8ef; --line-soft:#eef1f6;
+    --primary:#2d52c8; --primary-ink:#1c3a99;
+    --required:#a85a0a; --required-bg:#fdf2e3; --required-line:#f0d9b5;
+    --conflict:#b42318; --conflict-bg:#fdeceb;
+    --shadow:0 1px 2px rgba(16,30,54,.06), 0 6px 20px rgba(16,30,54,.05);
+    --radius:12px;
+    --serif:Georgia,'Times New Roman',serif;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --track:#2d52c8;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{margin:0}
+  body{
+    font-family:var(--sans); color:var(--ink); background:var(--bg);
+    line-height:1.45; -webkit-font-smoothing:antialiased; padding-bottom:96px;
+  }
+  a{color:var(--primary-ink)}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+
+  /* Header */
+  header.masthead{background:var(--card);border-bottom:1px solid var(--line)}
+  .masthead-in{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding:18px 0 14px}
+  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .title{font-family:var(--serif);font-weight:700;font-size:27px;letter-spacing:-.01em;line-height:1.05;margin:2px 0 0;width:100%}
+  .dateline{font-size:14px;color:var(--ink-soft);font-weight:600}
+  .lead{font-size:13.5px;color:var(--ink-soft);max-width:60ch;margin:6px 0 0;width:100%}
+  .src-note{width:100%;margin-top:10px;font-size:12.5px;display:none;align-items:center;gap:8px;
+    background:#fffaf0;border:1px solid var(--required-line);color:var(--required);padding:7px 11px;border-radius:9px}
+  .src-note.show{display:flex}
+  .src-note button{font:inherit;color:var(--primary-ink);background:none;border:0;text-decoration:underline;cursor:pointer;padding:0}
+
+  /* Controls */
+  .controls{position:sticky;top:0;z-index:30;background:rgba(244,246,249,.92);
+    backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line);padding:11px 0}
+  .ctl-row{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+  .field{display:flex;flex-direction:column;gap:3px}
+  .field label{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;padding-left:2px}
+  select,input[type=search]{font:inherit;font-size:14px;color:var(--ink);background:var(--card);
+    border:1px solid var(--line);border-radius:9px;padding:8px 10px;min-height:38px}
+  input[type=search]{min-width:190px}
+  select:focus,input:focus,button:focus-visible,.chip:focus-visible{outline:2.5px solid var(--primary);outline-offset:1px}
+  .grow{flex:1 1 190px}
+
+  .daybar{display:flex;gap:6px;overflow-x:auto;padding:10px 0 2px;-webkit-overflow-scrolling:touch}
+  .daytab{flex:0 0 auto;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
+    background:var(--card);border:1px solid var(--line);color:var(--ink-soft);border-radius:999px;padding:7px 14px}
+  .daytab[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:9px}
+  .chip{font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--line);
+    background:var(--card);color:var(--ink-soft);border-radius:999px;padding:5px 11px 5px 9px;display:inline-flex;align-items:center;gap:6px}
+  .chip .dot{width:9px;height:9px;border-radius:50%;background:var(--track);flex:0 0 auto}
+  .chip[aria-pressed=true]{color:#fff;border-color:transparent}
+  .reqtoggle{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);font-weight:600}
+
+  /* Layout */
+  .layout{display:grid;grid-template-columns:1fr;gap:22px;padding:20px 0}
+  @media(min-width:980px){ .layout{grid-template-columns:1fr 332px} }
+
+  .daygroup{margin:0 0 26px}
+  .dayhead{display:flex;align-items:baseline;gap:10px;margin:0 0 11px;padding-bottom:7px;border-bottom:2px solid var(--ink)}
+  .dayhead h2{font-family:var(--serif);font-size:19px;margin:0;font-weight:700}
+  .dayhead .cnt{font-size:12px;color:var(--muted);font-weight:600}
+
+  .card{position:relative;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--track);
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:13px 15px 13px 16px;margin:0 0 11px;transition:transform .12s ease, box-shadow .12s ease}
+  .card:hover{transform:translateY(-1px);box-shadow:0 2px 4px rgba(16,30,54,.08),0 10px 26px rgba(16,30,54,.08)}
+  .card.is-required{border-left-color:var(--required)}
+  .card-top{display:flex;gap:12px;align-items:flex-start}
+  .ctime{flex:0 0 auto;width:88px;font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.3}
+  .ctime .end{display:block;font-weight:500;color:var(--muted)}
+  .cbody{flex:1 1 auto;min-width:0}
+  .ctitle{font-size:15.5px;font-weight:700;margin:0 0 4px;letter-spacing:-.005em}
+  .badges{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 5px}
+  .tag{font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;letter-spacing:.01em}
+  .tag.track{color:#fff;background:var(--track)}
+  .tag.req{color:var(--required);background:var(--required-bg);border:1px solid var(--required-line)}
+  .tag.aud{color:var(--ink-soft);background:var(--line-soft);border:1px solid var(--line)}
+  .meta{font-size:12.5px;color:var(--ink-soft);margin:3px 0 0;display:flex;flex-wrap:wrap;gap:3px 12px}
+  .meta b{font-weight:700;color:var(--ink)}
+  .desc{font-size:13px;color:var(--ink-soft);margin:7px 0 0;display:none}
+  .desc.open{display:block}
+  .more{font:inherit;font-size:12px;font-weight:600;color:var(--primary-ink);background:none;border:0;cursor:pointer;padding:4px 0 0}
+  .addbtn{flex:0 0 auto;align-self:center;font:inherit;font-size:13px;font-weight:700;cursor:pointer;
+    border:1px solid var(--primary);color:var(--primary-ink);background:#fff;border-radius:9px;padding:8px 13px;white-space:nowrap}
+  .addbtn[data-on=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .addbtn .x{display:none}
+  .addbtn[data-on=true] .add{display:none}
+  .addbtn[data-on=true] .x{display:inline}
+
+  .empty{background:var(--card);border:1px dashed var(--line);border-radius:var(--radius);padding:30px 18px;text-align:center;color:var(--ink-soft)}
+  .empty strong{color:var(--ink);display:block;margin-bottom:4px;font-size:15px}
+
+  /* Schedule panel */
+  .panel{align-self:start}
+  @media(min-width:980px){ .panel{position:sticky;top:140px} }
+  .panel-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .panel-head{padding:13px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+  .panel-head h2{font-family:var(--serif);font-size:17px;margin:0}
+  .panel-head .n{font-size:12px;font-weight:700;color:#fff;background:var(--primary);border-radius:999px;padding:2px 9px;min-width:22px;text-align:center}
+  .panel-body{padding:6px 15px 14px;max-height:48vh;overflow:auto}
+  .panel-empty{font-size:13px;color:var(--muted);padding:16px 2px}
+  .pitem{padding:10px 0;border-bottom:1px solid var(--line-soft)}
+  .pitem:last-child{border-bottom:0}
+  .pitem .pt{font-size:13.5px;font-weight:700;margin:0}
+  .pitem .pm{font-size:12px;color:var(--ink-soft);margin:2px 0 0}
+  .pitem .rm{font:inherit;font-size:11.5px;color:var(--conflict);background:none;border:0;cursor:pointer;padding:3px 0 0;font-weight:600}
+  .pday{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 2px}
+  .pday:first-child{margin-top:2px}
+  .warn{display:flex;gap:7px;font-size:12px;color:var(--conflict);background:var(--conflict-bg);border:1px solid #f3c9c4;border-radius:8px;padding:7px 10px;margin:4px 0 8px}
+  .exports{padding:13px 15px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#fbfcfe}
+  .exports .full{grid-column:1 / -1}
+  .ebtn{font:inherit;font-size:13px;font-weight:700;cursor:pointer;border-radius:9px;padding:9px 10px;border:1px solid var(--line);background:#fff;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:7px}
+  .ebtn.primary{background:var(--primary);border-color:var(--primary);color:#fff;grid-column:1 / -1}
+  .ebtn:disabled{opacity:.5;cursor:not-allowed}
+
+  /* Mobile sticky bar */
+  .mobar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--ink);color:#fff;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 16px;box-shadow:0 -4px 18px rgba(16,30,54,.18)}
+  @media(min-width:980px){ .mobar{display:none} }
+  .mobar .lbl{font-size:13px;font-weight:600}
+  .mobar .lbl b{font-size:15px}
+  .mobar button{font:inherit;font-size:13.5px;font-weight:700;background:#fff;color:var(--ink);border:0;border-radius:9px;padding:9px 15px;cursor:pointer}
+  .panel.mobile-open{display:block}
+  @media(max-width:979px){
+    .panel{position:fixed;inset:0;z-index:60;background:rgba(16,23,40,.45);padding:0;display:none}
+    .panel.mobile-open{display:block}
+    .panel-card{position:absolute;left:0;right:0;bottom:0;max-height:88vh;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
+    .panel-body{max-height:none;flex:1 1 auto}
+    .panel-close{font:inherit;font-size:20px;line-height:1;background:none;border:0;cursor:pointer;color:var(--ink-soft);padding:0 4px}
+  }
+  .panel-close{display:none}
+  @media(max-width:979px){ .panel-close{display:inline-block} }
+
+  footer{border-top:1px solid var(--line);background:var(--card);margin-top:30px;padding:20px 0 40px;font-size:13px;color:var(--ink-soft)}
+  footer .upd{font-size:12px;color:var(--muted);margin:0 0 14px}
+  details.guide{border:1px solid var(--line);border-radius:var(--radius);background:#fbfcfe;padding:0}
+  details.guide>summary{cursor:pointer;font-weight:700;color:var(--ink);padding:13px 15px;list-style:none;display:flex;align-items:center;gap:8px}
+  details.guide>summary::-webkit-details-marker{display:none}
+  details.guide>summary::before{content:'›';font-size:18px;transition:transform .15s;color:var(--muted)}
+  details.guide[open]>summary::before{transform:rotate(90deg)}
+  .guide-in{padding:2px 16px 16px;font-size:13px;line-height:1.55}
+  .guide-in h4{margin:14px 0 5px;font-size:13px;color:var(--ink)}
+  .guide-in ol,.guide-in ul{margin:5px 0;padding-left:20px}
+  .guide-in li{margin:4px 0}
+  .guide-in code{background:#eef1f6;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+  .toast{position:fixed;left:50%;bottom:108px;transform:translateX(-50%) translateY(12px);opacity:0;
+    background:var(--ink);color:#fff;font-size:13px;font-weight:600;padding:9px 16px;border-radius:10px;z-index:80;
+    transition:opacity .2s, transform .2s;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  /* Print: only My Schedule */
+  @media print{
+    body{background:#fff;padding:0}
+    header.masthead, .controls, .layout > section:first-child, .mobar, .more, .addbtn, .exports, .panel-close, footer, .src-note{display:none!important}
+    .layout{display:block;padding:0}
+    .panel{position:static!important;display:block!important;background:none}
+    .panel-card{box-shadow:none;border:0}
+    .panel-body{max-height:none;overflow:visible}
+    .print-title{display:block!important}
+  }
+  .print-title{display:none;font-family:var(--serif);font-size:20px;margin:0 0 4px}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap masthead-in">
+    <div style="width:100%">
+      <span class="eyebrow" id="confEyebrow">Fairfax County Public Schools</span>
+      <h1 class="title" id="confTitle">Principal Professional Learning Conference</h1>
+    </div>
+    <div class="dateline" id="confDates">July 20–24, 2026</div>
+    <p class="lead">Browse sessions, filter to what is required for your role, build your schedule, and send it to yourself.</p>
+    <div class="src-note" id="srcNote" role="status">
+      <span id="srcMsg"></span>
+      <button type="button" id="srcGuide">How to connect the schedule</button>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="wrap">
+    <div class="ctl-row">
+      <div class="field">
+        <label for="roleSel">I am a…</label>
+        <select id="roleSel" aria-label="Select your role"></select>
+      </div>
+      <div class="field grow">
+        <label for="search">Search sessions</label>
+        <input type="search" id="search" placeholder="Title, topic, presenter, room…" autocomplete="off">
+      </div>
+      <label class="reqtoggle" id="reqWrap" hidden>
+        <input type="checkbox" id="reqOnly"> Show only what's required for me
+      </label>
+    </div>
+    <div class="daybar" id="dayBar" role="group" aria-label="Filter by day"></div>
+    <div class="chips" id="trackChips" role="group" aria-label="Filter by track"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="layout">
+    <section aria-label="Sessions">
+      <div id="list"></div>
+    </section>
+
+    <aside class="panel" id="panel" aria-label="My schedule">
+      <div class="panel-card">
+        <div class="panel-head">
+          <h2 class="print-title" id="printTitle"></h2>
+          <h2>My schedule</h2>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="n" id="schCount">0</span>
+            <button class="panel-close" id="panelClose" aria-label="Close">✕</button>
+          </div>
+        </div>
+        <div class="panel-body" id="schBody">
+          <p class="panel-empty">No sessions yet. Tap <strong>Add</strong> on any session to start building your plan.</p>
+        </div>
+        <div class="exports">
+          <button class="ebtn primary" id="expIcs" disabled>📅 Add to my calendar</button>
+          <button class="ebtn" id="expEmail" disabled>✉ Email to me</button>
+          <button class="ebtn" id="expPrint" disabled>🖨 Print</button>
+          <button class="ebtn full" id="expLink" disabled>🔗 Copy a link to my schedule</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p class="upd" id="updNote"></p>
+    <details class="guide" id="guideBox">
+      <summary>For organizers: how to manage this schedule</summary>
+      <div class="guide-in">
+        <p>The entire schedule is driven by one Google Sheet with a separate tab for each day. Edit the Sheet and this page updates the next time someone loads it. You never need to touch the code.</p>
+
+        <h4>One-time setup</h4>
+        <ol>
+          <li>Use the prepared Sheet, which has one tab per day (<code>Tue Jul 21</code>, <code>Wed Jul 22</code>, <code>Thu Jul 23</code>, <code>Fri Jul 24</code>). Every tab uses the same columns in this order: <code>Start Time</code>, <code>End Time</code>, <code>Session Title</code>, <code>Requirement</code>, <code>Requirement Detail</code>, <code>Audience Group (lane)</code>, <code>Target Audience (as written)</code>, <code>Theme / Track</code>, <code>Format</code>, <code>Room / Location</code>, <code>Virtual Link</code>, <code>Presenter</code>, <code>Description</code>, <code>Also Offered At</code>, <code>Notes</code>.</li>
+          <li>Add one session per row on the matching day's tab.</li>
+          <li>In the Sheet, go to <code>File, Share, Publish to web</code>. Publish each day tab separately as <code>Comma-separated values (.csv)</code> and copy each link.</li>
+          <li>Open this page's HTML file, find the <code>tabs</code> list near the top of the script, and paste each tab's link into its <code>csvUrl</code>. Save. That is the only code change ever needed.</li>
+        </ol>
+
+        <h4>How to fill in each column</h4>
+        <ul>
+          <li><b>Start Time / End Time</b>: e.g. <code>9:45 AM</code> and <code>11:00 AM</code>. Used for sorting, calendar export, and conflict warnings.</li>
+          <li><b>Session Title</b>: the name shown on the card.</li>
+          <li><b>Requirement</b>: <code>Required</code> or <code>Choice</code>. <b>Requirement Detail</b> carries the qualifier, e.g. <code>One admin per building</code>.</li>
+          <li><b>Audience Group (lane)</b>: the controlled value used for filtering, e.g. <code>School-Based Administrators</code> or <code>All Administrators</code>. <b>Target Audience (as written)</b> is your own wording, shown on the card.</li>
+          <li><b>Theme / Track</b>: optional category. Each value gets its own color automatically.</li>
+          <li><b>Format</b>: <code>In-person</code> or <code>Virtual</code>. For virtual sessions, add a <b>Virtual Link</b>; the card shows a join link instead of a room.</li>
+          <li><b>Room / Location, Presenter, Description, Notes</b>: shown on the session. <b>Also Offered At</b> lists extra time slots for repeats.</li>
+        </ul>
+
+        <h4>Day-to-day changes</h4>
+        <ul>
+          <li><b>Room change or typo:</b> edit the cell on that day's tab. The page shows it on the next load.</li>
+          <li><b>Add or cancel a session:</b> add or delete the row on the matching day's tab.</li>
+          <li><b>Move a session to another day:</b> cut the row and paste it onto the correct day's tab.</li>
+        </ul>
+        <p style="color:var(--muted)">Tip: keep the column headers exactly as listed on every tab. Everything else is freely editable.</p>
+      </div>
+    </details>
+    <p style="margin:14px 0 0;color:var(--muted);font-size:12px">Schedule planner for the conference team. Built to be embedded in Atlas or a Google Site.</p>
+  </div>
+</footer>
+
+<div class="mobar" id="mobar">
+  <span class="lbl">My schedule · <b id="mobarN">0</b></span>
+  <button id="mobarBtn" type="button">View &amp; send</button>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* =========================================================================
+   CONFIG  - the only thing an organizer edits.
+   One tab per day. Publish each day tab of the Google Sheet to the web as CSV,
+   then paste each link into that tab's csvUrl below.
+   Leave every csvUrl empty ("") to show the built-in sample schedule.
+   ========================================================================= */
+const CONFIG = {
+  title:    "Leadership Kickoff",
+  eyebrow:  "Fairfax County Public Schools",
+  dates:    "July 21 to 24, 2026",
+  year:     2026,
+  tabs: [
+    { day: "Tue Jul 21", date: "2026-07-21", csvUrl: "" },
+    { day: "Wed Jul 22", date: "2026-07-22", csvUrl: "" },
+    { day: "Thu Jul 23", date: "2026-07-23", csvUrl: "" },
+    { day: "Fri Jul 24", date: "2026-07-24", csvUrl: "" }
+  ]
+  // e.g. csvUrl: "https://docs.google.com/spreadsheets/d/e/XXXX/pub?gid=0&single=true&output=csv"
+};
+
+/* ---------- pure helpers (validated separately) ---------- */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/, '');
+  const rows=[]; let row=[]; let field=''; let i=0; let inQ=false; const n=text.length;
+  while(i<n){ const c=text[i];
+    if(inQ){ if(c==='"'){ if(text[i+1]==='"'){field+='"';i+=2;continue;} inQ=false;i++;continue;} field+=c;i++;continue; }
+    else { if(c==='"'){inQ=true;i++;continue;} if(c===','){row.push(field);field='';i++;continue;}
+      if(c==='\r'){i++;continue;} if(c==='\n'){row.push(field);rows.push(row);row=[];field='';i++;continue;} field+=c;i++; } }
+  if(field!=='' || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+function rowsToObjects(rows){
+  if(!rows.length) return [];
+  const H=rows[0].map(h=>h.trim().toLowerCase());
+  const out=[];
+  for(let r=1;r<rows.length;r++){ const cells=rows[r];
+    if(cells.every(c=>String(c).trim()==='')) continue;
+    const o={}; H.forEach((h,idx)=>o[h]=(cells[idx]!==undefined?String(cells[idx]).trim():'')); out.push(o); }
+  return out;
+}
+function timeToMin(t){ if(!t) return null; t=String(t).trim();
+  let m=t.match(/^(\d{1,2}):(\d{2})\s*([ap]\.?m\.?)?$/i);
+  if(!m){ const m2=t.match(/^(\d{1,2})\s*([ap]\.?m\.?)$/i); if(m2) m=[m2[0],m2[1],'00',m2[2]]; }
+  if(!m) return null;
+  let h=parseInt(m[1],10); const min=parseInt(m[2],10); const ap=(m[3]||'').toLowerCase();
+  if(ap.startsWith('p')&&h!==12) h+=12; if(ap.startsWith('a')&&h===12) h=0;
+  return h*60+min;
+}
+function fmtTime(min){ if(min==null) return ''; let h=Math.floor(min/60), m=min%60; const ap=h>=12?'PM':'AM';
+  let hh=h%12; if(hh===0) hh=12; return hh+':'+String(m).padStart(2,'0')+' '+ap; }
+const MONTHS={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function parseDayDate(day,year){ if(!day) return null;
+  const m=day.toLowerCase().match(/([a-z]{3,})\.?\s+(\d{1,2})/); if(!m) return null;
+  const mo=MONTHS[m[1].slice(0,3)]; const d=parseInt(m[2],10); if(!mo) return null; return {y:year,m:mo,d}; }
+function dateParts(s){
+  if(s && s.date){ const m=String(s.date).match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m) return {y:+m[1],m:+m[2],d:+m[3]}; }
+  return parseDayDate(s&&s.day,CONFIG.year);
+}
+function overlaps(a,b){ if(a.day!==b.day) return false;
+  if(a.startMin==null||a.endMin==null||b.startMin==null||b.endMin==null) return false;
+  return a.startMin<b.endMin && b.startMin<a.endMin; }
+function pad(n){return String(n).padStart(2,'0');}
+function icsDate(dt,min){ return `${dt.y}${pad(dt.m)}${pad(dt.d)}T${pad(Math.floor(min/60))}${pad(min%60)}00`; }
+function slug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- track colors ---------- */
+const TRACK_COLORS=['#2d52c8','#0f766e','#b4267a','#15803d','#c2410c','#6d4bd1','#0e7490','#9a5b00','#b91c4d','#3f6212'];
+const trackColorMap={};
+function colorFor(track){ if(!track) return '#64748b';
+  if(trackColorMap[track]) return trackColorMap[track];
+  let h=0; for(const ch of track) h=(h*31+ch.charCodeAt(0))>>>0;
+  const c=TRACK_COLORS[Object.keys(trackColorMap).length % TRACK_COLORS.length];
+  trackColorMap[track]=c; return c; }
+
+/* ---------- normalize a sheet/sample row into a session ----------
+   Columns follow the per-day-tab schema in DESIGN.md. The tab supplies the
+   day and date (set in loadData); every other field comes from the row.
+   Header lookups are case-insensitive and tolerate minor wording variants. */
+function norm(o,i){
+  const get=(...keys)=>{ for(const k of keys){ if(o[k]!=null && o[k]!=='') return o[k]; } return ''; };
+  const day=get('day');
+  const dateISO=get('date');
+  const start=get('start time','start','starttime','time');
+  const end=get('end time','end','endtime');
+  const title=get('session title','title','session','name');
+  const reqRaw=(get('requirement','required','status')||'').toLowerCase();
+  let requirement='Choice';
+  if(reqRaw.startsWith('req')||reqRaw==='yes'||reqRaw==='y'||reqRaw==='true') requirement='Required';
+  else if(reqRaw.startsWith('choice')||reqRaw.startsWith('opt')) requirement='Choice';
+  const requirementDetail=get('requirement detail','requirement notes');
+  const laneRaw=get('audience group (lane)','audience group','audience lane','audience');
+  const targetAudience=get('target audience (as written)','target audience','audience (as written)');
+  const track=get('theme / track','theme/track','theme','track','category','strand');
+  const format=get('format');
+  const room=get('room / location','room/location','room','location','site');
+  const virtualLink=get('virtual link','link','join link','url');
+  const presenter=get('presenter','speaker','facilitator');
+  const description=get('description','details','summary');
+  const alsoOfferedAt=get('also offered at','also offered','additional times','repeat times');
+  const notes=get('notes','note');
+  const audience=laneRaw.split(/[;,]/).map(s=>s.trim()).filter(Boolean);
+  const startMin=timeToMin(start), endMin=timeToMin(end);
+  const isVirtual=/virtual|online/i.test(format) || (!!virtualLink && !room);
+  return {
+    id: (get('id')||(slug(day)+'-'+slug(start)+'-'+slug(title))||('s'+i)),
+    day, date:dateISO, title, track,
+    audience, targetAudience,
+    requirement, requirementDetail,
+    format, isVirtual, room, virtualLink,
+    presenter, description, alsoOfferedAt, notes,
+    startMin, endMin
+  };
+}
+
+/* ---------- sample schedule (used when no Sheet is connected) ----------
+   Columns match the per-day-tab schema in DESIGN.md. The leading "day" value
+   maps each row to a tab; the date is filled in from CONFIG.tabs at build time. */
+const SAMPLE=[
+// day, start, end, title, requirement, requirement detail, audience group (lane), target audience (as written), theme/track, format, room/location, virtual link, presenter, description, also offered at, notes
+['Tue Jul 21','8:30 AM','9:45 AM','Opening Session and Welcome','Required','All attendees','All Administrators','All school and central office leaders','','In-person','Main Auditorium','','Superintendent\u2019s Office','Priorities for the year ahead and what to expect across the four days. Includes live Q and A.','',''],
+['Tue Jul 21','10:00 AM','11:15 AM','Leading Through Change','Choice','','School-Based Administrators','Principals and assistant principals','','In-person','Room 142','','J. Okafor','Practical routines for guiding a building through a year of change without losing the team.','',''],
+['Tue Jul 21','10:00 AM','11:15 AM','Central Office Partnership Lab','Choice','','Central Office','Department and program leaders','','In-person','Room 118','','Cabinet Leadership','How central office teams can better support schools this year.','',''],
+['Tue Jul 21','1:00 PM','2:15 PM','Coaching for Instructional Growth','Choice','','School-Based Administrators','Principals and assistant principals','','In-person','Room 150','','M. Levin','Moving staff from compliance to growth through trust-based feedback cycles.','2:30 PM-3:45 PM',''],
+
+['Wed Jul 22','8:30 AM','9:45 AM','Keynote: The Year Ahead','Required','One per building','All Administrators','All school and central office leaders','','In-person','Main Auditorium','','Guest Keynote','Morning keynote to open the second day.','',''],
+['Wed Jul 22','10:00 AM','11:15 AM','Legal Updates for Administrators','Required','One admin per building','School-Based Administrators','Building administrators','','In-person','Room 142','','Office of Legal Services','Annual legal update covering the changes that most affect building leaders.','',''],
+['Wed Jul 22','11:30 AM','12:30 PM','Special Education Compliance Essentials','Required','','All Administrators','All administrators','','In-person','Room 118','','Office of Special Services','IEP timelines, legal obligations, and the leader\u2019s role in service delivery.','',''],
+['Wed Jul 22','1:30 PM','2:45 PM','Supporting Multilingual Learners','Choice','','Elementary','Elementary leaders','','In-person','Room 144','','ML Programs Office','Identification, services, and family communication for multilingual learners.','',''],
+
+['Thu Jul 23','8:30 AM','9:45 AM','Integrated Discipline Practices','Required','All attendees','All Administrators','All administrators','','In-person','Main Auditorium','','Office of Equity','District approach to discipline and the leader\u2019s role in consistent practice.','',''],
+['Thu Jul 23','10:00 AM','11:15 AM','Master Scheduling Clinic','Choice','','Assistant Principals','Assistant principals','','In-person','Room 118','','R. Kettler','Bring your draft. Work through staffing constraints and student-need tradeoffs.','',''],
+['Thu Jul 23','10:00 AM','11:15 AM','Data to Decisions for Secondary Leaders','Choice','','Secondary','Secondary leaders','','In-person','Room 150','','Office of Research','Reading your school data story and choosing the moves that matter most.','',''],
+['Thu Jul 23','1:30 PM','2:45 PM','Title I Program Updates','Choice','','Title I','Title I school leaders','','In-person','Room 144','','Federal Programs Office','Compliance reminders and program updates for Title I schools.','',''],
+
+['Fri Jul 24','9:00 AM','10:00 AM','Virtual: Wellbeing and Sustainable Leadership','Choice','','All Administrators','All administrators','','Virtual','','https://example.org/kickoff-wellbeing','Leadership Coaching Team','Calendar audits, delegation, and sustainable routines for the year.','',''],
+['Fri Jul 24','10:15 AM','11:15 AM','Virtual: First 90 Days Planning','Choice','','Principals','New and returning principals','','Virtual','','https://example.org/kickoff-first90','Mentor Principal Team','Turning four days of learning into a concrete entry plan for the school year.','',''],
+['Fri Jul 24','11:30 AM','12:15 PM','Closing Session and Commitments','Required','All attendees','All Administrators','All school and central office leaders','','In-person','Main Auditorium','','Superintendent\u2019s Office','Shared commitments for the year and a send-off from district leadership.','','']
+];
+const SAMPLE_HEADERS=['day','start time','end time','session title','requirement','requirement detail','audience group (lane)','target audience (as written)','theme / track','format','room / location','virtual link','presenter','description','also offered at','notes'];
+function sampleObjects(){
+  const dateByDay={}; (CONFIG.tabs||[]).forEach(t=>{ dateByDay[t.day]=t.date; });
+  return SAMPLE.map(r=>{ const o={}; SAMPLE_HEADERS.forEach((h,i)=>o[h]=r[i]); o.date=dateByDay[o.day]||''; return o; });
+}
+
+/* ---------- state ---------- */
+let SESSIONS=[];
+let DAYS=[];
+let selected=new Set();
+const state={ day:'all', tracks:new Set(), role:'', reqOnly:false, q:'' };
+
+/* ---------- data layer ----------
+   All data loading lives here. Each day tab is fetched, parsed, and tagged with
+   its day and date from CONFIG. If every tab has a URL and all fetch cleanly we
+   use the Sheet; otherwise we fall back to the built-in sample so the app always
+   renders. To move to a Google Apps Script web app later, replace only the body
+   of this function (see "Future Google route" in DESIGN.md). */
+async function loadData(){
+  const tabs = CONFIG.tabs || [];
+  const allHaveUrls = tabs.length>0 && tabs.every(t=>t.csvUrl);
+  if(allHaveUrls){
+    try{
+      const rows=[];
+      for(const tab of tabs){
+        const res=await fetch(tab.csvUrl,{cache:'no-store'});
+        if(!res.ok) throw new Error('HTTP '+res.status+' for '+tab.day);
+        const objs=rowsToObjects(parseCSV(await res.text()));
+        objs.forEach(o=>{ o.day=tab.day; o.date=tab.date; rows.push(o); });
+      }
+      if(rows.length) return { objs:rows, source:'sheet' };
+    }catch(e){ console.warn('Sheet load failed, using sample:',e); }
+  }
+  return { objs: sampleObjects(), source:'sample' };
+}
+
+/* ---------- load + render orchestration ---------- */
+async function load(){
+ try{
+  const { objs, source } = await loadData();
+  SESSIONS=objs.map(norm).filter(s=>s.title);
+
+  // day order = first appearance
+  DAYS=[]; SESSIONS.forEach(s=>{ if(s.day && !DAYS.includes(s.day)) DAYS.push(s.day); });
+  // sort within day by start time
+  SESSIONS.sort((a,b)=>{ const da=DAYS.indexOf(a.day), db=DAYS.indexOf(b.day);
+    if(da!==db) return da-db; return (a.startMin??9999)-(b.startMin??9999); });
+
+  setupHeader(source);
+  setupRoles();
+  setupDays();
+  setupTracks();
+  restoreFromHash();
+  render();
+ }catch(e){
+  console.error('Planner load error:',e);
+  const list=document.getElementById('list');
+  if(list) list.innerHTML='<div class="empty"><strong>Could not load the schedule.</strong>'+esc(e&&e.message?e.message:e)+'</div>';
+ }
+}
+
+function setupHeader(source){
+  document.getElementById('confTitle').textContent=CONFIG.title;
+  document.getElementById('confEyebrow').textContent=CONFIG.eyebrow;
+  document.getElementById('confDates').textContent=CONFIG.dates;
+  document.title=CONFIG.title+' Planner';
+  document.getElementById('printTitle').textContent='My '+CONFIG.title+' schedule';
+  const upd=document.getElementById('updNote');
+  upd.textContent='Showing '+SESSIONS.length+' sessions. Loaded '+new Date().toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'.';
+  const note=document.getElementById('srcNote');
+  if(source==='sample'){
+    note.classList.add('show');
+    document.getElementById('srcMsg').textContent='Preview using sample sessions. Connect your Google Sheet to go live.';
+  }
+}
+
+function setupRoles(){
+  const set=new Set();
+  SESSIONS.forEach(s=>s.audience.forEach(a=>{ if(a && !/^all\b/i.test(a)) set.add(a); }));
+  const sel=document.getElementById('roleSel');
+  sel.innerHTML='<option value="">Everyone</option>'+[...set].sort().map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
+  sel.onchange=()=>{ state.role=sel.value;
+    document.getElementById('reqWrap').hidden=!state.role;
+    if(!state.role){ state.reqOnly=false; document.getElementById('reqOnly').checked=false; }
+    render(); };
+  document.getElementById('reqOnly').onchange=e=>{ state.reqOnly=e.target.checked; render(); };
+}
+
+function setupDays(){
+  const bar=document.getElementById('dayBar');
+  const mk=(val,label)=>{ const b=document.createElement('button'); b.className='daytab'; b.textContent=label;
+    b.setAttribute('aria-pressed', state.day===val); b.onclick=()=>{ state.day=val;
+      [...bar.children].forEach(c=>c.setAttribute('aria-pressed', c===b)); render(); }; return b; };
+  bar.innerHTML=''; bar.appendChild(mk('all','All days'));
+  DAYS.forEach(d=>bar.appendChild(mk(d,d)));
+}
+
+function setupTracks(){
+  const tracks=[...new Set(SESSIONS.map(s=>s.track).filter(Boolean))];
+  const wrap=document.getElementById('trackChips'); wrap.innerHTML='';
+  tracks.forEach(t=>{ const col=colorFor(t);
+    const b=document.createElement('button'); b.className='chip'; b.setAttribute('aria-pressed','false');
+    b.innerHTML=`<span class="dot" style="background:${col}"></span>${esc(t)}`;
+    b.onclick=()=>{ const on=!state.tracks.has(t); if(on){state.tracks.add(t);} else {state.tracks.delete(t);}
+      b.setAttribute('aria-pressed',on); b.style.background=on?col:''; b.style.borderColor=on?col:'';
+      render(); };
+    wrap.appendChild(b); });
+}
+
+document.getElementById('search').addEventListener('input',e=>{ state.q=e.target.value.toLowerCase().trim(); render(); });
+
+/* ---------- filtering ---------- */
+function audienceMatches(s){ if(!state.role) return true;
+  return s.audience.some(a=>/^all\b/i.test(a)) || s.audience.some(a=>a.toLowerCase()===state.role.toLowerCase()); }
+function passes(s){
+  if(state.day!=='all' && s.day!==state.day) return false;
+  if(state.tracks.size && !state.tracks.has(s.track)) return false;
+  if(state.role && state.reqOnly){ if(!(audienceMatches(s) && s.requirement==='Required')) return false; }
+  if(state.q){ const hay=(s.title+' '+s.track+' '+s.presenter+' '+s.room+' '+s.targetAudience+' '+s.description+' '+s.notes+' '+s.audience.join(' ')).toLowerCase();
+    if(!hay.includes(state.q)) return false; }
+  return true;
+}
+
+/* ---------- render session list ---------- */
+function render(){
+  const list=document.getElementById('list'); list.innerHTML='';
+  const visible=SESSIONS.filter(passes);
+  if(!visible.length){
+    list.innerHTML='<div class="empty"><strong>No sessions match these filters.</strong>Try clearing a track or switching to All days.</div>';
+  } else {
+    let curDay=null, group=null;
+    visible.forEach(s=>{
+      if(s.day!==curDay){ curDay=s.day;
+        group=document.createElement('div'); group.className='daygroup';
+        const cnt=visible.filter(x=>x.day===s.day).length;
+        group.innerHTML=`<div class="dayhead"><h2>${esc(s.day||'Unscheduled')}</h2><span class="cnt">${cnt} session${cnt!==1?'s':''}</span></div>`;
+        list.appendChild(group);
+      }
+      group.appendChild(cardFor(s));
+    });
+  }
+  renderSchedule();
+  syncCounts();
+}
+
+function cardFor(s){
+  const col=colorFor(s.track);
+  const isReqForMe = state.role && audienceMatches(s) && s.requirement==='Required';
+  const card=document.createElement('div');
+  card.className='card'+(isReqForMe?' is-required':'');
+  card.style.setProperty('--track',col);
+  const on=selected.has(s.id);
+  const time=`<div class="ctime">${esc(fmtTime(s.startMin)||s.day&&'')}${s.endMin!=null?`<span class="end">${esc(fmtTime(s.endMin))}</span>`:''}</div>`;
+  const reqBadge = isReqForMe
+      ? `<span class="tag req">★ Required for you</span>`
+      : (s.requirement==='Required'?`<span class="tag req">Required</span>`:'');
+  const detailBadge = (s.requirement==='Required' && s.requirementDetail)
+      ? `<span class="tag aud">${esc(s.requirementDetail)}</span>` : '';
+  const audText = s.targetAudience || s.audience.join(', ');
+  const audBadge = audText ? `<span class="tag aud">${esc(audText)}</span>`:'';
+  const locMeta = s.isVirtual
+      ? (s.virtualLink
+          ? `<span><b>Virtual</b> · <a href="${esc(s.virtualLink)}" target="_blank" rel="noopener">Join link</a></span>`
+          : `<span><b>Virtual</b></span>`)
+      : (s.room?`<span><b>${esc(s.room)}</b></span>`:'');
+  const meta=[ locMeta,
+               s.presenter?`<span>${esc(s.presenter)}</span>`:'' ].filter(Boolean).join('');
+  card.innerHTML=`
+    <div class="card-top">
+      ${time}
+      <div class="cbody">
+        <div class="badges">${s.track?`<span class="tag track" style="background:${col}">${esc(s.track)}</span>`:''}${reqBadge}${detailBadge}${audBadge}</div>
+        <p class="ctitle">${esc(s.title)}</p>
+        <div class="meta">${meta}</div>
+        ${s.description?`<p class="desc" id="d-${esc(s.id)}">${esc(s.description)}</p><button class="more" aria-expanded="false">Details</button>`:''}
+      </div>
+      <button class="addbtn" data-on="${on}" aria-pressed="${on}"><span class="add">+ Add</span><span class="x">✓ Added</span></button>
+    </div>`;
+  const more=card.querySelector('.more');
+  if(more){ const d=card.querySelector('.desc'); more.onclick=()=>{ const open=d.classList.toggle('open');
+    more.textContent=open?'Hide details':'Details'; more.setAttribute('aria-expanded',open); }; }
+  const btn=card.querySelector('.addbtn');
+  btn.onclick=()=>toggle(s.id,btn);
+  return card;
+}
+
+function toggle(id,btn){
+  if(selected.has(id)){ selected.delete(id); } else { selected.add(id); toast('Added to your schedule'); }
+  if(btn){ const on=selected.has(id); btn.dataset.on=on; btn.setAttribute('aria-pressed',on); }
+  writeHash(); renderSchedule(); syncCounts();
+}
+
+/* ---------- render My Schedule ---------- */
+function renderSchedule(){
+  const body=document.getElementById('schBody');
+  const chosen=SESSIONS.filter(s=>selected.has(s.id));
+  const has=chosen.length>0;
+  ['expIcs','expEmail','expPrint','expLink'].forEach(id=>document.getElementById(id).disabled=!has);
+  if(!has){ body.innerHTML='<p class="panel-empty">No sessions yet. Tap <strong>Add</strong> on any session to start building your plan.</p>'; return; }
+
+  // conflicts
+  const conflictIds=new Set();
+  for(let i=0;i<chosen.length;i++) for(let j=i+1;j<chosen.length;j++)
+    if(overlaps(chosen[i],chosen[j])){ conflictIds.add(chosen[i].id); conflictIds.add(chosen[j].id); }
+
+  chosen.sort((a,b)=>{ const da=DAYS.indexOf(a.day),db=DAYS.indexOf(b.day); if(da!==db) return da-db; return (a.startMin??0)-(b.startMin??0); });
+
+  let html='';
+  if(conflictIds.size) html+=`<div class="warn">⚠ <span>${conflictIds.size} session${conflictIds.size!==1?'s':''} overlap in time. Overlaps are marked below.</span></div>`;
+  let curDay=null;
+  chosen.forEach(s=>{
+    if(s.day!==curDay){ curDay=s.day; html+=`<div class="pday">${esc(s.day||'')}</div>`; }
+    const clash=conflictIds.has(s.id);
+    html+=`<div class="pitem">
+      <p class="pt">${esc(s.title)}</p>
+      <p class="pm">${esc(fmtTime(s.startMin))}${s.endMin!=null?'–'+esc(fmtTime(s.endMin)):''}${s.isVirtual?' · Virtual':(s.room?' · '+esc(s.room):'')}${clash?' · <span style="color:var(--conflict);font-weight:700">overlaps</span>':''}</p>
+      <button class="rm" data-id="${esc(s.id)}">Remove</button>
+    </div>`;
+  });
+  body.innerHTML=html;
+  body.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{ selected.delete(b.dataset.id); writeHash(); render(); });
+}
+
+function syncCounts(){
+  const n=selected.size;
+  document.getElementById('schCount').textContent=n;
+  document.getElementById('mobarN').textContent=n;
+}
+
+/* ---------- exports ---------- */
+function chosenSorted(){ const c=SESSIONS.filter(s=>selected.has(s.id));
+  c.sort((a,b)=>{ const da=DAYS.indexOf(a.day),db=DAYS.indexOf(b.day); if(da!==db) return da-db; return (a.startMin??0)-(b.startMin??0); }); return c; }
+
+function buildICS(){ const sessions=chosenSorted();
+  let out=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FCPS Conference Planner//EN','CALSCALE:GREGORIAN'];
+  sessions.forEach(s=>{ const dt=dateParts(s); if(!dt||s.startMin==null) return;
+    const endMin=s.endMin!=null?s.endMin:s.startMin+60;
+    const loc=s.isVirtual ? (s.virtualLink||'Virtual') : (s.room||'');
+    const desc=[s.track?('Track: '+s.track):'',s.presenter?('Presenter: '+s.presenter):'',s.isVirtual&&s.virtualLink?('Join: '+s.virtualLink):'',s.description||''].filter(Boolean).join('\\n');
+    const cl=t=>String(t).replace(/([,;\\])/g,'\\$1');
+    out.push('BEGIN:VEVENT','UID:'+s.id+'@fcps-conf','DTSTART:'+icsDate(dt,s.startMin),'DTEND:'+icsDate(dt,endMin),
+      'SUMMARY:'+cl(s.title)); if(loc) out.push('LOCATION:'+cl(loc)); if(desc) out.push('DESCRIPTION:'+desc);
+    out.push('END:VEVENT'); });
+  out.push('END:VCALENDAR'); return out.join('\r\n'); }
+
+document.getElementById('expIcs').onclick=()=>{
+  const blob=new Blob([buildICS()],{type:'text/calendar'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='my-conference-schedule.ics'; document.body.appendChild(a); a.click(); a.remove();
+  toast('Calendar file downloaded');
+};
+document.getElementById('expEmail').onclick=()=>{
+  const c=chosenSorted(); let body=CONFIG.title+'\n'+CONFIG.dates+'\n\n'; let curDay=null;
+  c.forEach(s=>{ if(s.day!==curDay){ curDay=s.day; body+='\n'+s.day+'\n'; }
+    body+='  '+fmtTime(s.startMin)+(s.endMin!=null?'\u2013'+fmtTime(s.endMin):'')+'  '+s.title+(s.room?'  ('+s.room+')':'')+'\n'; });
+  body+='\n\nReopen this plan: '+planUrl();
+  try{ location.href='mailto:?subject='+encodeURIComponent('My '+CONFIG.title+' schedule')+'&body='+encodeURIComponent(body); }
+  catch(e){ prompt('Copy your schedule:',body); }
+};
+document.getElementById('expPrint').onclick=()=>window.print();
+document.getElementById('expLink').onclick=async()=>{ writeHash();
+  try{ await navigator.clipboard.writeText(planUrl()); toast('Link copied'); }
+  catch(e){ prompt('Copy this link to your schedule:',planUrl()); } };
+
+/* ---------- share via URL hash (no accounts, no storage) ---------- */
+let _planHash='';
+function writeHash(){
+  const ids=[...selected];
+  _planHash = ids.length ? ('plan='+ids.map(encodeURIComponent).join(',')) : '';
+  try{
+    const base=location.pathname+location.search;
+    history.replaceState(null,'', ids.length?('#'+_planHash):base);
+  }catch(e){
+    try{ location.hash=_planHash; }catch(_){}
+  }
+}
+function planUrl(){
+  try{ const base=location.href.split('#')[0]; return _planHash?base+'#'+_planHash:base; }
+  catch(e){ return location.href; }
+}
+function restoreFromHash(){
+  try{
+    const m=(location.hash||'').match(/plan=([^&]+)/); if(!m) return;
+    const valid=new Set(SESSIONS.map(s=>s.id));
+    m[1].split(',').map(decodeURIComponent).forEach(id=>{ if(valid.has(id)) selected.add(id); });
+    _planHash='plan='+[...selected].map(encodeURIComponent).join(',');
+  }catch(e){ console.warn('Could not restore plan from link:',e); }
+}
+
+/* ---------- mobile schedule panel ---------- */
+const panel=document.getElementById('panel');
+function openPanel(){ panel.classList.add('mobile-open'); }
+function closePanel(){ panel.classList.remove('mobile-open'); }
+document.getElementById('mobarBtn').onclick=openPanel;
+document.getElementById('panelClose').onclick=closePanel;
+panel.addEventListener('click',e=>{ if(e.target===panel) closePanel(); });
+
+/* ---------- misc ---------- */
+let toastT;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1700); }
+document.getElementById('srcGuide').onclick=()=>{ const g=document.getElementById('guideBox'); g.open=true; g.scrollIntoView({behavior:'smooth'}); };
+
+load();
+/* end of app */
+</script>
+</body>
+</html>

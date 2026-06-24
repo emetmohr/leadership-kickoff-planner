@@ -22,10 +22,10 @@ The conference has multiple tracks of sessions, some required for specific group
 
 ## Stack
 
-- Front end: vanilla HTML, CSS, JavaScript, single file.
-- Data: Google Sheet, one tab per day, each published as CSV, fetched live.
+- Front end: vanilla HTML, CSS, JavaScript, single file (logos inlined as base64).
+- Data: Google Sheet, one tab per day, read live by a bound Google Apps Script that injects the data into the served page (the Sheet stays restricted to FCPS; no public CSV).
 - Version control: Git and GitHub.
-- Hosting: to be confirmed with IT. Options are Atlas, a Google Site, or a hosted URL. GitHub Pages for testing.
+- Hosting: **live as an Apps Script web app** (`/exec` URL, runs as the FCPS account). Embeddable in Atlas or a Google Site via the same URL (`XFrameOptionsMode.ALLOWALL`). See `apps-script/DEPLOY.md`.
 
 ## Data source
 
@@ -34,10 +34,12 @@ The companion Google Sheet has one tab per day (`Tue Jul 21` through `Fri Jul 24
 ## Constraints and context
 
 - District devices may filter external domains and block CDNs, so the app ships with zero external runtime dependencies.
-- Hosting and embedding depend on an IT answer. If IT blocks external hosting or publishing the Sheet, the fallback is a Google Apps Script web app that reads the private Sheet from inside Workspace. The design isolates data loading so that swap is a contained change.
+- The Sheet is locked to "FCPS All Staff" and publishing it as CSV is blocked, so the Apps Script web-app route (formerly the fallback) is now the live host: it reads the private Sheet from inside Workspace and serves the app with data injected. Data loading is isolated in `loadData()`.
 
 ## Glossary
 
-- Audience Group (lane): the controlled audience category used for filtering, for example School-Based Administrators versus All Administrators.
-- Requirement: Required or Choice. Requirement Detail carries the qualifier, for example one admin per building.
-- Also Offered At: extra time slots for a session that repeats; the app makes each occurrence individually selectable.
+- Identity: an attendee's role + level + any cross-cutting labels. The picker builds it as a cascade; the app shows the union of everything relevant. See AUDIENCE_MODEL.md.
+- Audience: who a session is for, as a list of selectors (Everyone, School-Based Admin, a level group, a role optionally narrowed to a level, or a label).
+- Requirement: Required or Choice. Requirement Detail: attendance rule only (blank = all attend; "One per school"; "One select per school"; "Select group").
+- Session Code: a short token shared by rows that are the same session offered on different days; the app merges them into one session with multiple occurrences.
+- Also Offered At: extra same-day time slots for a session that repeats; the app makes each occurrence individually selectable.

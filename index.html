@@ -92,6 +92,7 @@
   .tag.track{color:#fff;background:var(--track)}
   .tag.req{color:var(--required);background:var(--required-bg);border:1px solid var(--required-line)}
   .tag.aud{color:var(--ink-soft);background:var(--line-soft);border:1px solid var(--line)}
+  .tag.fmt.virtual{color:#fff;background:var(--teal);border:1px solid var(--teal)}
   .meta{font-size:12.5px;color:var(--ink-soft);margin:3px 0 0;display:flex;flex-wrap:wrap;gap:3px 12px}
   .meta b{font-weight:700;color:var(--ink)}
   .meta .repeat{color:var(--primary-ink);font-weight:600}
@@ -348,9 +349,14 @@ function parseCSV(text){
   if(field!=='' || row.length){ row.push(field); rows.push(row); }
   return rows;
 }
+/* Canonicalize a column header for matching: lowercase, collapse any whitespace
+   (including non-breaking spaces and line breaks from the Sheet) to one space, and
+   drop spaces around a slash, so "Room / Location", "Room/Location", and a copy-
+   pasted "Room / Location" all resolve to the same key. */
+const _hk=s=>String(s==null?'':s).toLowerCase().replace(/\s+/g,' ').replace(/\s*\/\s*/g,'/').trim();
 function rowsToObjects(rows){
   if(!rows.length) return [];
-  const H=rows[0].map(h=>h.trim().toLowerCase());
+  const H=rows[0].map(_hk);
   const out=[];
   for(let r=1;r<rows.length;r++){ const cells=rows[r];
     if(cells.every(c=>String(c).trim()==='')) continue;
@@ -397,7 +403,7 @@ function colorFor(track){ if(!track) return '#64748b';
    day and date (set in loadData); every other field comes from the row.
    Header lookups are case-insensitive and tolerate minor wording variants. */
 function norm(o,i){
-  const get=(...keys)=>{ for(const k of keys){ if(o[k]!=null && o[k]!=='') return o[k]; } return ''; };
+  const get=(...keys)=>{ for(const k of keys){ const kk=_hk(k); if(o[kk]!=null && o[kk]!=='') return o[kk]; } return ''; };
   const day=get('day');
   const dateISO=get('date');
   const start=get('start time','start','starttime','time');
@@ -506,7 +512,7 @@ const SAMPLE=[
 const SAMPLE_HEADERS=['session code','day','start time','end time','session title','requirement','requirement detail','audience','theme / track','format','room / location','virtual link','presenter','description','also offered at','notes'];
 function sampleObjects(){
   const dateByDay={}; (CONFIG.tabs||[]).forEach(t=>{ dateByDay[t.day]=t.date; });
-  return SAMPLE.map(r=>{ const o={}; SAMPLE_HEADERS.forEach((h,i)=>o[h]=r[i]); o.date=dateByDay[o.day]||''; return o; });
+  return SAMPLE.map(r=>{ const o={}; SAMPLE_HEADERS.forEach((h,i)=>o[_hk(h)]=r[i]); o.date=dateByDay[o.day]||''; return o; });
 }
 
 /* ---------- state ---------- */
@@ -768,7 +774,7 @@ function passes(s){
   if(state.day!=='all' && s.day!==state.day) return false;
   if(state.tracks.size && !state.tracks.has(s.track)) return false;
   if(state.identity.role && state.reqOnly){ if(!(audienceMatches(s) && s.requirement==='Required')) return false; }
-  if(state.q){ const hay=(s.title+' '+s.track+' '+s.presenter+' '+s.room+' '+s.targetAudience+' '+s.description+' '+s.notes+' '+s.audience.join(' ')+' '+s.audience.map(audDisplay).join(' ')).toLowerCase();
+  if(state.q){ const hay=(s.title+' '+s.track+' '+s.presenter+' '+s.room+' '+s.targetAudience+' '+s.description+' '+s.notes+' '+s.audience.join(' ')+' '+s.audience.map(audDisplay).join(' ')+' '+(s.format||'')+' '+(s.isVirtual?'virtual':'in-person')).toLowerCase();
     if(!hay.includes(state.q)) return false; }
   return true;
 }
@@ -823,6 +829,7 @@ function cardFor(s){
       ? `<span class="tag aud reqinfo" role="button" tabindex="0" data-term="${esc(s.requirementDetail)}"${detailDesc?` title="${esc(detailDesc)}"`:''}>${esc(s.requirementDetail)} <span class="ii">&#9432;</span></span>` : '';
   const audText = s.targetAudience || s.audience.map(audDisplay).join(', ');
   const audBadge = audText ? `<span class="tag aud">${esc(audText)}</span>`:'';
+  const fmtBadge = s.isVirtual ? `<span class="tag fmt virtual">Virtual</span>` : '';
   const locMeta = s.isVirtual
       ? (s.virtualLink
           ? `<span><b>Virtual</b> · <a href="${esc(s.virtualLink)}" target="_blank" rel="noopener">Join link</a></span>`
@@ -837,7 +844,7 @@ function cardFor(s){
     <div class="card-top">
       ${time}
       <div class="cbody">
-        <div class="badges">${s.track?`<span class="tag track" style="background:${col}">${esc(s.track)}</span>`:''}${reqBadge}${detailBadge}${audBadge}</div>
+        <div class="badges">${s.track?`<span class="tag track" style="background:${col}">${esc(s.track)}</span>`:''}${reqBadge}${detailBadge}${audBadge}${fmtBadge}</div>
         ${detailDesc?`<div class="reqnote" hidden>${esc(detailDesc)}</div>`:''}
         <p class="ctitle">${esc(s.title)}</p>
         <div class="meta">${meta}</div>

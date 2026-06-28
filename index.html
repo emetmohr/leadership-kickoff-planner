@@ -499,7 +499,6 @@ const SAMPLE=[
 
 ['','Thu Jul 23','10:00 AM','11:15 AM','Assistant Principal Master Scheduling','Choice','','Assistant Principals','','In-person','Room 118','','R. Kettler','Hands on master scheduling clinic for assistant principals at any level.','',''],
 ['','Thu Jul 23','10:00 AM','11:15 AM','Central Office Partnership Lab','Choice','','Central Office Leaders','','In-person','Room 150','','Cabinet Leadership','How central office can better support schools this year.','',''],
-['','Thu Jul 23','1:30 PM','2:30 PM','CSS Administrator Sync','Required','','CSS administrator','','In-person','Room 122','','Comprehensive Services','Required sync for Comprehensive Services Site administrators.','',''],
 
 ['TIB','Fri Jul 24','10:00 AM','11:00 AM','Title I Program Briefing','Required','One per school','Title I','','Virtual','','https://example.org/kickoff-title1','Federal Programs','Virtual repeat of the Tuesday Title I briefing.','',''],
 ['','Fri Jul 24','11:30 AM','12:15 PM','Closing Session and Commitments','Required','','Everyone','','In-person','Main Auditorium','','Superintendent','Shared commitments and a send off from district leadership.','','']
@@ -709,7 +708,6 @@ const AUD = {
     {id:'project-momentum', label:'Project Momentum'},
     {id:'discipline-lead',  label:'Discipline Lead'},
     {id:'science-admin',    label:'Science Administrator'},
-    {id:'css-admin',        label:'CSS Administrator'},
     {id:'auto-tech',        label:'Auto Tech Administrator'}
   ]
 };
@@ -725,14 +723,13 @@ function audDisplay(raw){ const d=AUDMAP[_aud_n(raw)]; return d||String(raw||'')
 /* Parse one raw audience value into a selector. Constraints present are ANDed. */
 function parseSelector(raw){
   const t=_aud_n(raw); if(!t) return null;
-  if(/\b(everyone|all leaders|all administrators|all admins|all attendees|all staff|all)\b/.test(t) && !/elementary|middle|high|secondary|principal|director|central|title|momentum|discipline|science|css/.test(t)) return {everyone:true};
+  if(/\b(everyone|all leaders|all administrators|all admins|all attendees|all staff|all)\b/.test(t) && !/elementary|middle|high|secondary|principal|director|central|title|momentum|discipline|science/.test(t)) return {everyone:true};
   if(/school[ -]?based/.test(t)) return {schoolBased:true};
   const sel={};
   if(/\btitle\s*1?i?\b|title one/.test(t)) sel.label='title-i';
   else if(/project momentum/.test(t)) sel.label='project-momentum';
   else if(/discipline lead/.test(t)) sel.label='discipline-lead';
   else if(/science/.test(t)) sel.label='science-admin';
-  else if(/\bcss\b|comprehensive services/.test(t)) sel.label='css-admin';
   else if(/auto\s*tech/.test(t)) sel.label='auto-tech';
   if(/\belementary\b|\belem\b/.test(t)) sel.level='elementary';
   else if(/\bmiddle\b|\bms\b/.test(t)) sel.level='middle';

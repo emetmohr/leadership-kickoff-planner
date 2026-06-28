@@ -731,17 +731,20 @@ function parseSelector(raw){
   else if(/discipline lead/.test(t)) sel.label='discipline-lead';
   else if(/science/.test(t)) sel.label='science-admin';
   else if(/auto\s*tech/.test(t)) sel.label='auto-tech';
-  if(/\belementary\b|\belem\b/.test(t)) sel.level='elementary';
-  else if(/\bmiddle\b|\bms\b/.test(t)) sel.level='middle';
-  else if(/high school|\bhigh\b|\bhs\b/.test(t)) sel.level='high';
-  else if(/\bsecondary\b|\bsec\b/.test(t)) sel.level='secondary';
+  /* A tag may name several levels ("MS/HS"); collect them all so the match is an OR. */
+  const _lv=[];
+  if(/\belementary\b|\belem\b/.test(t)) _lv.push('elementary');
+  if(/\bmiddle\b|\bms\b/.test(t)) _lv.push('middle');
+  if(/high school|\bhigh\b|\bhs\b/.test(t)) _lv.push('high');
+  if(/\bsecondary\b|\bsec\b/.test(t)) _lv.push('secondary');
+  if(_lv.length) sel.levels=_lv;
   if(/assistant (principal|administrator)|\basst\b|\bap\b/.test(t)) sel.role = /administrat|nts|nsp/.test(t) ? 'asst-admin-nts' : 'assistant-principal';
   else if(/director of student activities|\bdsa\b/.test(t)) sel.role='dsa';
   else if(/director of student services|\bdss\b/.test(t)) sel.role='dss';
   else if(/administrator of (nts|nsp)|\bnts\b|\bnsp\b/.test(t)) sel.role='admin-nts';
   else if(/\bprincipal/.test(t)) sel.role='principal';
   else if(/central office/.test(t)) sel.role='central-office';
-  if(!sel.role && !sel.level && !sel.label) return {raw:t};
+  if(!sel.role && !sel.levels && !sel.label) return {raw:t};
   return sel;
 }
 /* ---------- filtering ---------- */
@@ -751,7 +754,8 @@ function selectorMatches(sel, p){
   if(sel.schoolBased) return !!p.role && p.role!=='central-office';
   if(sel.raw) return false;                 // unrecognized value: never a personal "for me" match
   if(sel.role && p.role!==sel.role) return false;
-  if(sel.level && p.level!==sel.level) return false;
+  /* Enforce level only when the attendee picked one; "Any level" matches all levels. */
+  if(p.level && sel.levels && !sel.levels.includes(p.level)) return false;
   if(sel.label && !(p.labels && p.labels.has(sel.label))) return false;
   return true;
 }

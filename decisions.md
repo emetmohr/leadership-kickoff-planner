@@ -2,6 +2,28 @@
 
 _Newest first. Each entry: the decision, then the reason._
 
+## 2026-06-29
+
+**Picking a role auto-filters the list; the toggle narrows to just my required sessions.**
+Selecting a role (and level) now hides sessions aimed only at other audiences by default, with no checkbox required. A new lenient matcher, `relevantToMe()`, keeps a session visible unless every one of its selectors clearly names a different audience; sessions with a blank or unrecognized audience lean toward showing so a Sheet typo can't hide something meant for the attendee. The "Show only what's required for me" checkbox is kept, and now means: from my already-relevant list, collapse to just the Required ones (it still uses the strict `audienceMatches`, the same test that drives the "Required for you" star). Reason: an Elementary Principal saw Central Office, Directors of Student Services, and Auto Tech sessions in the list and expected role selection alone to filter them out. Two visibility tiers now exist: default shows everything for me (Required and Choice), toggle shows only my must-attends. Trade-off accepted: a session with a literally blank audience cell is hidden under the toggle (pre-existing behavior; properly tagging it "Everyone" makes it surface).
+
+## 2026-06-27
+
+**Audience level matching is multi-level and "Any level" is a wildcard.**
+A tag can name several levels and `parseSelector` now keeps them all (`levels: []`), matched as an OR, so "Experienced MS/HS Science Administrators" reaches both middle- and high-school science admins. `selectorMatches` enforces level only when the attendee actually picked one; leaving the picker on "Any level" matches every level. Reason: a High School science admin was getting no required-for-me results because the old parser read "MS/HS" as middle only and then excluded high. Trade-off accepted: "Any level" now surfaces all level-specific required sessions (over-show), which is the safer direction for a "required for me" view than hiding something.
+
+**New audience *values* are Sheet-managed (Lists cols I/J); the identity picker stays code-defined.**
+The organizer can add any number of audience tags from the Lists tab (Audience Key in col I, Display Name in col J) — they flow into the day-tab dropdown and the card display with no code change. The "I am a / I am also" picker (roles, levels, cross-cutting label checkboxes) remains defined in `index.html`. Consequence: a brand-new audience value is taggable and displayable immediately, but it only self-filters under "required for me" if it maps to an identity the app already understands (a role, a level, or an existing label). Distinguishing genuinely new identities (e.g., "new" vs "experienced") would require adding picker checkboxes in code.
+
+**Tag only Virtual sessions; in-person is the unlabeled default.**
+Cards show a teal "Virtual" pill in the badge row and nothing for in-person, since the conference is in-person by default and only the exceptions need flagging. The previously bold "Virtual" location line was removed as redundant once the pill existed; the Join link stays. Search also indexes Format plus a virtual/in-person token so "virtual" reliably finds every virtual session.
+
+**Normalize Sheet column headers before matching (`_hk()`).**
+Header lookups collapse all whitespace (including non-breaking spaces and line breaks) and drop spaces around a slash, so "Room / Location" resolves no matter how it was typed or pasted. Reason: room numbers weren't displaying because the live header carried invisible spacing that didn't equal the literal key. Applied to both the live and sample data paths so they stay consistent.
+
+**CSS Administrator retired.**
+No more Comprehensive Services Site sessions, so CSS was removed from the picker, the `parseSelector` alias, and the demo fallback row (the organizer had already removed it from the Lists tab). Reverses the earlier CSS-as-cross-cutting-label decision.
+
 ## 2026-06-23
 
 **Cache the assembled payload in `CacheService`, not the raw Sheet reads.** `getData()` builds the whole page payload (`schedule`, `help`, `audmap`) once and stores it under `kickoff_payload_v2` with a 10-minute TTL, so 1,500 concurrent loads serve from cache instead of each triggering a full Sheet read (the read-concurrency exposure IT raised). `?fresh=1` bypasses the cache for instant views of edits, and `flushCache()` (called after `applyAudienceSetup()`) clears it on demand. Caching the assembled object rather than per-tab reads keeps it to a single key; values over ~95KB skip caching to stay under CacheService's 100KB per-value cap.

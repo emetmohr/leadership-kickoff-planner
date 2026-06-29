@@ -770,10 +770,25 @@ function audienceMatches(s){
   if(!p || !p.role) return true;            // no identity chosen: not used to hide anything
   return (s._sel||[]).some(sel=>selectorMatches(sel,p));
 }
+/* Visibility test for the default (auto-filtered) list. Stricter than "show all" but
+   more lenient than audienceMatches: a session stays visible unless every one of its
+   selectors clearly names a DIFFERENT audience. Sessions with no audience, or with an
+   unrecognized ("raw") audience, lean toward showing so nothing meant for the attendee
+   is hidden. audienceMatches stays strict and still drives the "Required for you" star. */
+function relevantToMe(s){
+  const p=state.identity;
+  if(!p || !p.role) return true;            // no identity chosen: don't hide anything
+  const sels=s._sel||[];
+  if(!sels.length) return true;             // no audience specified: general session, show it
+  return sels.some(sel=> sel.raw ? true : selectorMatches(sel,p));
+}
 function passes(s){
   if(state.day!=='all' && s.day!==state.day) return false;
   if(state.tracks.size && !state.tracks.has(s.track)) return false;
-  if(state.identity.role && state.reqOnly){ if(!(audienceMatches(s) && s.requirement==='Required')) return false; }
+  if(state.identity.role){
+    if(!relevantToMe(s)) return false;       // auto-hide sessions aimed only at other audiences
+    if(state.reqOnly && !(audienceMatches(s) && s.requirement==='Required')) return false; // toggle: just my must-attends
+  }
   if(state.q){ const hay=(s.title+' '+s.track+' '+s.presenter+' '+s.room+' '+s.targetAudience+' '+s.description+' '+s.notes+' '+s.audience.join(' ')+' '+s.audience.map(audDisplay).join(' ')+' '+(s.format||'')+' '+(s.isVirtual?'virtual':'in-person')).toLowerCase();
     if(!hay.includes(state.q)) return false; }
   return true;
@@ -832,8 +847,8 @@ function cardFor(s){
   const fmtBadge = s.isVirtual ? `<span class="tag fmt virtual">Virtual</span>` : '';
   const locMeta = s.isVirtual
       ? (s.virtualLink
-          ? `<span><b>Virtual</b> · <a href="${esc(s.virtualLink)}" target="_blank" rel="noopener">Join link</a></span>`
-          : `<span><b>Virtual</b></span>`)
+          ? `<span><a href="${esc(s.virtualLink)}" target="_blank" rel="noopener">Join link</a></span>`
+          : '')
       : (s.room?`<span><b>${esc(s.room)}</b></span>`:'');
   const meta=[ locMeta,
                s.presenter?`<span>${esc(s.presenter)}</span>`:'',

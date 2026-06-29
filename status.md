@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-06-23_
+_Last updated: 2026-06-29_
 
 ## Current state
 
@@ -14,21 +14,27 @@ _Last updated: 2026-06-23_
 - Both logos (FCPS header, TheFist splash/footer) are inlined as base64, so the app is one self-contained file.
 - Branded to the official FCPS palette (teal/gold), white masthead, "Office of Professional Learning" in teal.
 - **Cache layer is implemented** in `apps-script/Code.gs`. `getData()` assembles the full payload (`schedule`, `help`, `audmap`) once and stores it in `CacheService` under `kickoff_payload_v2` with a 10-minute TTL; subsequent loads serve from cache without touching the Sheet (addresses the read-concurrency risk IT raised). `?fresh=1` bypasses the cache; `flushCache()` clears it and is called at the end of `applyAudienceSetup()`. Values over ~95KB skip caching (CacheService's 100KB per-value cap).
+- **CSS Administrator removed** (no more CSS sessions): dropped from the "I am also" picker, the `parseSelector` alias, and the demo fallback row. The organizer had already removed it from the Lists tab.
+- **Audience level matching now supports multiple levels per tag and an "Any level" wildcard.** `parseSelector` collects every level named in a tag (so "MS/HS Science Administrators" -> `levels:['middle','high']`), and `selectorMatches` enforces level only when the attendee picked one — leaving the level on "Any level" matches all levels. This fixed required sessions for science admins (and any multi-level audience) not surfacing under "Show only what's required for me."
+- **Search now indexes Format** plus a synthetic virtual/in-person token, so searching "virtual" (or "in-person") reliably finds sessions by their actual format, not just ones that mention the word in text.
+- **Virtual sessions get a teal "Virtual" pill** in the card badge row; in-person is left untagged (it's the assumed default). The old bold "Virtual" line at the bottom of the card was removed as redundant; the Join link remains when present.
+- **Sheet column headers are normalized before matching** (`_hk()`): whitespace — including non-breaking spaces and line breaks — is collapsed and spaces around a slash are dropped, so "Room / Location" resolves however it's typed. This fixed room numbers not appearing on cards.
+- **Picking a role now auto-filters the list.** A new lenient matcher, `relevantToMe()`, hides sessions aimed only at other audiences as soon as a role is chosen (no checkbox needed); blank or unrecognized audiences lean toward showing so a Sheet typo can't hide something for the attendee. The "Show only what's required for me" checkbox is kept and now narrows the already-relevant list to just the Required sessions (still using strict `audienceMatches`). Verified by a logic test: for an Elementary Principal, Central Office, Directors of Student Services, and Auto Tech sessions hide while School-Based, Principal, and general sessions stay. See decisions.md (2026-06-29).
 
 ## In progress
 
-- **None of this session's work is committed to git yet.** `index.html` (+413/-169), plus untracked `AUDIENCE_MODEL.md`, `apps-script/` (Code.gs, DEPLOY.md), and `Leadership_Kickoff_Schedule_CLEANED.xlsx`. The deployed app (Version 10) is ahead of the repo; commit from the host shell.
-- The Apps Script `Index` file was last edited directly in the editor (Monaco) for the pill-help fix, so it matches the local `index.html` setupHelp; keep them in sync on the next paste-deploy.
+- This session's `index.html` work was committed from the host shell across three commits (`0d2afbf` CSS removal, `a93e717` multi-level/Any-level matching, `4ceff0c` format-in-search + Virtual-only tag + header normalization), then pasted into the Apps Script `Index` and deployed as a new version.
+- **Uncommitted in `index.html`: the role auto-filter change (2026-06-29) plus the earlier card tweak.** The auto-filter work (`relevantToMe()` + reworked `passes()`) is on disk via the file tools but not yet committed or deployed. The earlier final card tweak (removing the redundant bold "Virtual" at the bottom of the card, keeping the Join link) may also still be uncommitted. Confirm with `git status` on the host (Windows) shell, commit both, then redeploy a new Apps Script version. The sandbox `index.html` view is unreliable (stale-mount + phantom `index.lock`), so commit and deploy from the host; the real file on disk is correct (verified via file tools).
 
 ## Next steps
 
-1. Commit this session's work from the host (Windows) shell.
+1. Commit the role auto-filter change (and the final card tweak) on the host, then redeploy a new Apps Script version (see In progress).
 2. **Fix a comment typo in `apps-script/Code.gs` (line 38):** the debug-endpoint comment starts with `\ ` instead of `//`, which is a syntax error in that file. Change to `//`.
 3. Convert the Audience column to dropdown chips for click-to-pick (Google single-value-per-cell limitation noted; may need a multi-select or a chips UI).
 4. Test on an FCPS device (laptop and phone) through the district content filter.
 5. Fill remaining content in the Sheet (Tuesday/Friday times, rooms, Friday virtual links).
 
-(Done: cache layer added to `apps-script/Code.gs` — see Current state.)
+(Done this session: removed CSS Administrator; multi-level + Any-level audience matching; format-aware search; Virtual-only card pill; Sheet-header normalization fixing room display. Done prior session: cache layer in `apps-script/Code.gs`.)
 
 ## Waiting on the organizer
 

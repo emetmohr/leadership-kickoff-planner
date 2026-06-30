@@ -76,33 +76,132 @@ function doGet(e) {
 // it in CacheService for 10 minutes; subsequent loads serve from cache without
 // touching the Sheet. ?fresh=1 bypasses the cache (instant view of edits), and
 // flushCache() clears it on demand.
-var CACHE_KEY = 'kickoff_payload_v2';
-var CACHE_TTL = 600; // seconds (10 minutes)
+//
+// CacheService caps a single value at 100KB. Rather than store the whole payload
+// under one key, we cache each day under its own key (plus help and the audience
+// map), so no single value approaches the cap even as descriptions grow: the
+// largest day is only a few KB today and would have to grow ~20x to hit 100KB.
+// All keys are written together with the same TTL, so a load always reconstructs
+// one consistent snapshot.
+var CACHE_VERSION = 'v3';      // bump to invalidate all keys at once
+var CACHE_TTL = 600;           // seconds (10 minutes)
+var CACHE_MAX = 95000;         // per-key safety margin under the 100KB cap
+
+/** The full set of cache keys: one per day tab, plus help and audmap. */
+function cacheKeys_() {
+  var keys = TABS.map(function (t, i) { return cacheKey_('day_' + i); });
+  keys.push(cacheKey_('help'));
+  keys.push(cacheKey_('audmap'));
+  return keys;
+}
+function cacheKey_(suffix) { return 'kickoff_' + CACHE_VERSION + '_' + suffix; }
 
 /** Assemble everything the page needs in one object. */
 function buildData() {
   return { schedule: readSchedule(), help: readHelp(), audmap: readAudienceMap() };
 }
 
-/** Return the payload from cache, or build + cache it. Pass fresh=true to skip. */
+/** Return the payload from cache, or build + cache it. Pass fresh=true to skip
+ *  the cache read. A script lock ensures only ONE execution rebuilds at a time,
+ *  so a cold cache can't trigger a stampede of simultaneous Sheet reads: the
+ *  first request rebuilds and caches, everyone else waits a moment and reads the
+ *  now-warm cache. Reads/writes every key in one getAll/putAll round-trip, so a
+ *  load never mixes data of different ages. */
 function getData(fresh) {
   var cache = CacheService.getScriptCache();
+  var keys = cacheKeys_();
   if (!fresh) {
-    var hit = cache.get(CACHE_KEY);
-    if (hit) { try { return JSON.parse(hit); } catch (err) {} }
+    var hit = readAll_(cache, keys);
+    if (hit) return hit;
   }
-  var data = buildData();
+  var lock = LockService.getScriptLock();
+  var locked = false;
   try {
-    var s = JSON.stringify(data);
-    // CacheService caps a single value at 100KB; only cache if we fit under it.
-    if (s.length < 95000) cache.put(CACHE_KEY, s, CACHE_TTL);
-  } catch (err) {}
-  return data;
+    locked = lock.tryLock(5000); // wait up to 5s for the single rebuild slot
+    if (locked) {
+      if (!fresh) {              // someone may have filled the cache while we waited
+        var again = readAll_(cache, keys);
+        if (again) return again;
+      }
+      var data = buildData();
+      try { putData_(cache, data); } catch (e) {}
+      return data;
+    }
+  } catch (e) {
+  } finally {
+    if (locked) { try { lock.releaseLock(); } catch (e) {} }
+  }
+  // Lock not obtained in time: serve a fresh build (uncached) rather than block.
+  return buildData();
 }
 
-/** Clear the cached payload so the next load rebuilds from the Sheet. */
+/** Read every cache key in one getAll and reassemble, or null if any is missing. */
+function readAll_(cache, keys) {
+  try {
+    var hit = cache.getAll(keys);
+    if (hasAllKeys_(hit, keys)) return assembleFromCache_(hit);
+  } catch (e) {}
+  return null;
+}
+
+/** True only if every expected key is present in the getAll result. */
+function hasAllKeys_(hit, keys) {
+  for (var i = 0; i < keys.length; i++) { if (!hit[keys[i]]) return false; }
+  return true;
+}
+
+/** Rebuild the payload object from the per-key cache values. */
+function assembleFromCache_(hit) {
+  return {
+    schedule: TABS.map(function (t, i) { return JSON.parse(hit[cacheKey_('day_' + i)]); }),
+    help: JSON.parse(hit[cacheKey_('help')]),
+    audmap: JSON.parse(hit[cacheKey_('audmap')])
+  };
+}
+
+/** Write each piece under its own key in a single putAll. A piece over the
+ *  per-key cap is simply left uncached (re-read from the Sheet next load). */
+function putData_(cache, data) {
+  var toPut = {};
+  data.schedule.forEach(function (d, i) {
+    var s = JSON.stringify(d);
+    if (s.length < CACHE_MAX) toPut[cacheKey_('day_' + i)] = s;
+  });
+  var h = JSON.stringify(data.help);
+  if (h.length < CACHE_MAX) toPut[cacheKey_('help')] = h;
+  var a = JSON.stringify(data.audmap);
+  if (a.length < CACHE_MAX) toPut[cacheKey_('audmap')] = a;
+  if (Object.keys(toPut).length) cache.putAll(toPut, CACHE_TTL);
+}
+
+/** Clear all cached keys so the next load rebuilds from the Sheet. */
 function flushCache() {
-  CacheService.getScriptCache().remove(CACHE_KEY);
+  CacheService.getScriptCache().removeAll(cacheKeys_());
+}
+
+// ---- Keep the cache warm ----------------------------------------------------
+// A time-based trigger refreshes the cache every 5 minutes. The cache TTL is 10
+// minutes, so this keeps it from ever going cold during the conference: every
+// visitor then hits the fast cached path (~0.8s) instead of a cold rebuild
+// (~3.4s), and the cold-stampede scenario (many requests reading the Sheet at
+// once before the first finishes) can't happen. Run installCacheWarmer() ONCE
+// from the editor to set it up; removeCacheWarmer() tears it down.
+function warmCache() { getData(true); }
+
+function installCacheWarmer() {
+  removeCacheWarmer();
+  ScriptApp.newTrigger('warmCache').timeBased().everyMinutes(5).create();
+  warmCache(); // prime it right away
+  return 'Cache warmer installed: refreshing every 5 minutes.';
+}
+
+function removeCacheWarmer() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var n = 0;
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'warmCache') { ScriptApp.deleteTrigger(triggers[i]); n++; }
+  }
+  return 'Removed ' + n + ' cache-warmer trigger(s).';
 }
 
 /** Read each day tab and return [{ day, date, csv }, ...]. */
